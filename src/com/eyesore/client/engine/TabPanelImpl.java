@@ -66,10 +66,7 @@ public class TabPanelImpl implements CommonSettings{
                     imageIndex = USER_CANVAS_NORMAL_ICON;
                 }
                 
-                for(int i=0; i< chatClient.userArray.length; i++){
-                    array[i] = chatClient.userArray[i];
-                    System.out.println("user = " + i + " " + array[i]);
-                }
+                array = chatClient.userArray;                
             break;
             case ROOM_CANVAS:
                 for(int i=chatClient.roomArray.length -1; i>-1; i--){
