@@ -20,6 +20,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,7 +32,7 @@ import java.util.logging.Logger;
 public class ChatClient extends javax.swing.JFrame implements com.eyesore.client.engine.CommonSettings, Runnable{
     private Socket socket;
     private InformationDialog dialog;
-    private String serverName, userRoom, serverData, roomList, bannerName, chatLogo, proxyHost, splitString;
+    private String serverName, userRoom, serverData, roomList, bannerName, chatLogo, proxyHost, splitString, userCollection;
     public String userName;
     public String[] roomArray, userArray;
     private int serverPort, totalUserCount, proxyPort;
@@ -43,7 +44,6 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     private boolean startFlag;
     private Thread thread;
     private StringTokenizer tokenizer;
-    private StringBuffer stringBuffer;
     private Toolkit toolkit;
     private Dimension dimension;
     private MediaTracker tracker;
@@ -51,7 +51,6 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     public Image[] iconArray;
 //    protected PrivateChat[] privateWindow;
     protected int privateWindowCount;
-//    protected MessageCanvas messageCanvas;
     public Font textFont;
     private TabPanelImpl tapPanel;
     
@@ -60,49 +59,6 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
      * Creates new form ChatClient
      */
     public ChatClient() {
-//        toolkit = Toolkit.getDefaultToolkit();
-//        if(toolkit.getScreenSize().getWidth() > 628)
-//            setSize(628, 512);
-//        else
-//            setSize((int)toolkit.getScreenSize().getWidth(),(int)toolkit.getScreenSize().getHeight() - 20);
-//        
-//        setResizable(false);
-//        dimension = getSize();
-        
-        
-        
-//        tracker = new MediaTracker(this);
-//        int imageCount = 0;
-//        imgLogo = toolkit.getImage(chatLogo);
-//        tracker.addImage(imgLogo,imageCount);
-//        imageCount++;
-//        imgBanner = toolkit.getImage(bannerName);		
-//        tracker.addImage(imgBanner,imageCount);
-//        imageCount++;
-        
-//        iconArray = new Image[iconCount];
-//        for(int i=0; i<iconCount; i++){
-//            iconArray[i] = toolkit.getImage("icons/photo" + i + ".gif");
-//            tracker.addImage(iconArray[i], imageCount);
-//            imageCount++;
-//        }
-        
-        //privateWindow = new PrivateChat[MAX_PRIVATE_WINDOW];
-//        privateWindowCount = 0;
-        
-//        try {
-////            setAppletStatus("Loading images and icons ...");
-//            tracker.waitForAll();
-//        } catch (InterruptedException ex) {
-//            Logger.getLogger(ChatClient.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-        
-//        setIconImage(toolkit.getImage("images/logo.gif"));
-//        setAppletStatus("");
-        
-//        intializeAppletComponents();
-        
-        
         initComponents();
         initData();
     }
@@ -504,6 +460,7 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         bannerName = "alamat";
         chatLogo = "logo chat";
         isProxy = false;
+        userCollection = "";
         messageImpl = new MessageImpl(this);
         tapPanel = new TabPanelImpl(this);
         
@@ -533,11 +490,14 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
             else{
                 isProxy = false;	
             }
-            //System.out.println("" + userName + serverName + serverPort);
+            
             connectToServer();				
         }		
     }
     
+    /**
+     * Send message to server.
+     */
     private void sendMessage(){
         System.out.println("user room : " + userRoom);
         sendMessageToServer("MESS " + userRoom+ "~" + userName + ": " + txtMessage.getText());
@@ -546,6 +506,9 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         txtMessage.requestFocus();
     }
     
+    /**
+     * Make connection with server.
+     */
     private void connectToServer() {
         try {
             messageImpl.clearAll();
@@ -576,7 +539,7 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     }
 
     /**
-     * Send anything message to server.
+     * Send any message to server.
      * 
      * @param message 
      */
@@ -702,12 +665,11 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                     
                     splitString = serverData.substring(5);
                     enablePrivateWindow(splitString);
-                   
-                    tapPanel.addListItemToMessageObject(splitString, lstRooms, USER_CANVAS);
+                                       
                     messageImpl.addMessageToMessageObject(splitString + " joins chat.", MESSAGE_TYPE_JOIN, txtCanvas);
                     
-                    userArray[totalUserCount - 1] = splitString;
-                    tapPanel.addListItemToMessageObject(splitString, lstUsers, USER_CANVAS);
+                    setUserCollection(splitString);                    
+                    setUserList(userCollection);         
                 }
                 
                 if(serverData.startsWith("LIST")){
@@ -715,16 +677,10 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                     totalUserCount = tokenizer.countTokens();
                     updateInformationLabel();
                     tapPanel.clearAll();
-                    userArray = new String[totalUserCount + 1];
-                    System.out.println("total user count : " + totalUserCount);
-                    int i=0;
+                    String message = serverData.substring(5);
                     
-                    while(tokenizer.hasMoreTokens()){ 
-                        
-                        userArray[i] = tokenizer.nextToken();
-                        tapPanel.addListItemToMessageObject(userArray[i], lstUsers, USER_CANVAS);
-                        i++;
-                    }
+                    setUserCollection(message);                   
+                    setUserList(userCollection);
                     
                     messageImpl.clearAll();
                     messageImpl.addMessageToMessageObject("Welcome to the " + userRoom + " room!", MESSAGE_TYPE_JOIN, txtCanvas);
@@ -749,6 +705,9 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         }
     }
 
+    /**
+     * Set label for name, room, and number of user.
+     */
     private void updateInformationLabel() {
         lblName.setText(userName);
         lblRoom.setText(userRoom);
@@ -759,11 +718,15 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
+    /**
+     * fill roomArray with room that already served.
+     * 
+     * @return roomArray
+     */
     public String[] getRoomList(){
         int i=0;
         roomArray = new String[tokenizer.countTokens()];
-        tokenCount = tokenizer.countTokens() - 1;
-        //System.out.println("count : " + tokenizer.countTokens());
+        tokenCount = tokenizer.countTokens() - 1;        
         
         while(tokenizer.hasMoreTokens()){
             
@@ -779,5 +742,39 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     
     public void setUserArray(String[] userArray){
         this.userArray = userArray;
+    }
+    
+    /**
+     * Fill list of user with connected user.
+     * 
+     * @param pattern Herd of user, separate by ";".
+     */
+    private void setUserList(String pattern){        
+        StringTokenizer tokenizer = new StringTokenizer(pattern, ";");
+        
+        int counter = tokenizer.countTokens();        
+        userArray = new String[counter];                
+        int i=0;
+        
+        while(tokenizer.hasMoreTokens()){
+            userArray[i] = tokenizer.nextToken();
+            tapPanel.addListItemToMessageObject(userArray[i], lstUsers, USER_CANVAS);
+            i++;
+        }             
+    }
+    
+    /**
+     * Make text filled with combination all of user which separate
+     * by ";".
+     * 
+     * @param user user that want ot add.
+     */
+    private void setUserCollection(String user){       
+        if(userCollection.equals("")){
+            userCollection += user;
+        } else{
+            userCollection +=  ";" + user;
+        }
+        
     }
 }
