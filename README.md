@@ -1,4 +1,4 @@
-chat
+Kyllian 01 : Simple chat
 ====
 
 Simple chat application.
