@@ -124,7 +124,7 @@ public class MessageImpl implements com.eyesore.client.engine.CommonSettings {
         messageObject.message = "";
     }
     
-    private void insertContent(boolean text, String message, JTextPane pane){
+    protected void insertContent(boolean text, String message, JTextPane pane){
         pane.setContentType("text/html");
         
         //HTMLEditorKit hek = new HTMLEditorKit();
@@ -154,9 +154,8 @@ public class MessageImpl implements com.eyesore.client.engine.CommonSettings {
                 Logger.getLogger(MessageImpl.class.getName()).log(Level.SEVERE, null, ex);
             }
         } else{
-            try {
-                
-                doc.insertAfterEnd(body, message);
+            try {                 
+                doc.insertBeforeStart(body, message);                
             } catch (BadLocationException ex) {
                 Logger.getLogger(MessageImpl.class.getName()).log(Level.SEVERE, null, ex);
             } catch (IOException ex) {

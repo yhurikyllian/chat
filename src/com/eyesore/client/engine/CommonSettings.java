@@ -15,8 +15,8 @@ import com.eyesore.client.*;
 public interface CommonSettings {
     public int MAX_COLOR = 8;
     public int TOP_PANEL_START_POS = 10;
-    public int DEFAULT_ICON_WIDTH = 30;
-    public int DEFAULT_ICON_HEIGHT = 30;
+    public int DEFAULT_ICON_WIDTH = 100;
+    public int DEFAULT_ICON_HEIGHT = 100;
     public int TAPPANEL_WIDTH =	225;
     public int TAPPANEL_HEIGHT = 350;
     public int TAPPANEL_CANVAS_WIDTH = 180;
@@ -54,5 +54,5 @@ public interface CommonSettings {
 
     public int MAX_PRIVATE_WINDOW = 40;
     public String PRODUCT_NAME = "Auju Chat v1.0";
-    public String COMPANY_NAME = "Auju Technologies";
+    public String COMPANY_NAME = "Auju Technology";
 }

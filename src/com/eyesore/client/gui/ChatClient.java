@@ -6,6 +6,7 @@
 
 package com.eyesore.client.gui;
 
+import com.eyesore.client.engine.IconImpl;
 import com.eyesore.client.engine.MessageImpl;
 import com.eyesore.client.engine.TabPanelImpl;
 import com.eyesore.client.network.SocksSocket;
@@ -36,9 +37,9 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     public String userName;
     public String[] roomArray, userArray;
     private int serverPort, totalUserCount, proxyPort;
-    public int iconCount, tokenCount;
+    public int iconCount, tokenCount, privateWindowCount;
     private boolean isProxy;
-    private MessageImpl messageImpl;
+    public MessageImpl messageImpl;
     private DataOutputStream dataOutputStream;
     private DataInputStream dataInputStream;
     private boolean startFlag;
@@ -49,10 +50,10 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     private MediaTracker tracker;
     private Image imgLogo, imgBanner;
     public Image[] iconArray;
-//    protected PrivateChat[] privateWindow;
-    protected int privateWindowCount;
+    public PrivateChat[] privateWindow;    
     public Font textFont;
-    private TabPanelImpl tapPanel;
+    public TabPanelImpl tapPanel;
+    private IconImpl iconImpl;
     
     
     /**
@@ -93,7 +94,7 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         jScrollPane3 = new javax.swing.JScrollPane();
         lstUsers = new javax.swing.JList();
         btnIgnore = new javax.swing.JButton();
-        jButton4 = new javax.swing.JButton();
+        btnSendDirect = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane4 = new javax.swing.JScrollPane();
         lstRooms = new javax.swing.JList();
@@ -101,7 +102,7 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         txtUserCount = new javax.swing.JTextField();
         jPanel4 = new javax.swing.JPanel();
         jScrollPane2 = new javax.swing.JScrollPane();
-        jTextPane2 = new javax.swing.JTextPane();
+        txtEmot = new javax.swing.JTextPane();
         jMenuBar1 = new javax.swing.JMenuBar();
         jMenu1 = new javax.swing.JMenu();
         itemLogin = new javax.swing.JMenuItem();
@@ -118,12 +119,14 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         jMenuBar2.add(jMenu4);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setResizable(false);
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 formWindowClosing(evt);
             }
         });
 
+        txtCanvas.setEditable(false);
         jScrollPane1.setViewportView(txtCanvas);
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 0, 24)); // NOI18N
@@ -202,11 +205,26 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
             public int getSize() { return strings.length; }
             public Object getElementAt(int i) { return strings[i]; }
         });
+        lstUsers.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                lstUsersMouseClicked(evt);
+            }
+        });
         jScrollPane3.setViewportView(lstUsers);
 
         btnIgnore.setText("Ignore User");
+        btnIgnore.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnIgnoreActionPerformed(evt);
+            }
+        });
 
-        jButton4.setText("Send Private Message");
+        btnSendDirect.setText("Send Private Message");
+        btnSendDirect.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSendDirectActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -214,14 +232,14 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(jScrollPane3)
             .addComponent(btnIgnore, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, 253, Short.MAX_VALUE)
+            .addComponent(btnSendDirect, javax.swing.GroupLayout.DEFAULT_SIZE, 253, Short.MAX_VALUE)
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 260, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jButton4)
+                .addComponent(btnSendDirect)
                 .addGap(0, 0, 0)
                 .addComponent(btnIgnore))
         );
@@ -265,7 +283,13 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
 
         tabPanel.addTab("<html><body leftmargin=0 topmargin=8 marginwidth=18 marginheight=5>Rooms</body></html>", jPanel3);
 
-        jScrollPane2.setViewportView(jTextPane2);
+        txtEmot.setEditable(false);
+        txtEmot.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseMoved(java.awt.event.MouseEvent evt) {
+                txtEmotMouseMoved(evt);
+            }
+        });
+        jScrollPane2.setViewportView(txtEmot);
 
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
@@ -291,6 +315,11 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         jMenu1.add(itemLogin);
 
         itemDisconnect.setText("Disconnect");
+        itemDisconnect.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                itemDisconnectActionPerformed(evt);
+            }
+        });
         jMenu1.add(itemDisconnect);
         jMenu1.add(jSeparator1);
 
@@ -332,12 +361,12 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                 .addGap(0, 0, 0)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jScrollPane1)
-                    .addComponent(tabPanel, javax.swing.GroupLayout.DEFAULT_SIZE, 347, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 14, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(txtMessage, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane1)
+                    .addComponent(tabPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 347, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(14, 14, 14)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(txtMessage, javax.swing.GroupLayout.Alignment.TRAILING)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(btnSend)
                         .addComponent(jButton2))))
@@ -348,17 +377,18 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
 
     private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
         // TODO add your handling code here:
-//        disconnectChat();
+        disconnectChat();
         System.exit(0);
     }//GEN-LAST:event_formWindowClosing
 
     private void itemLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_itemLoginActionPerformed
         // TODO add your handling code here:
+        loginToChat();
     }//GEN-LAST:event_itemLoginActionPerformed
 
     private void btnChangeRoomActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnChangeRoomActionPerformed
         // TODO add your handling code here:
-//        changeRoom();
+        changeRoom();
     }//GEN-LAST:event_btnChangeRoomActionPerformed
 
     private void btnSendActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSendActionPerformed
@@ -370,10 +400,45 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
 
     private void txtMessageKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtMessageKeyPressed
         // TODO add your handling code here:
-        if(!(txtMessage.getText().trim().equals(""))){
+        if(!(txtMessage.getText().trim().equals("")) && (evt.getKeyCode() == 10)){
             sendMessage();
         }
     }//GEN-LAST:event_txtMessageKeyPressed
+
+    private void btnIgnoreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIgnoreActionPerformed
+        // TODO add your handling code here:
+        tapPanel.fillSelectedUser(lstUsers);
+        if(evt.getActionCommand().equals("Ignore User")){
+            tapPanel.ignoreUser(true);
+        } else{
+            tapPanel.ignoreUser(false);
+        }
+    }//GEN-LAST:event_btnIgnoreActionPerformed
+
+    private void btnSendDirectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSendDirectActionPerformed
+        // TODO add your handling code here:
+        
+    }//GEN-LAST:event_btnSendDirectActionPerformed
+
+    private void lstUsersMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lstUsersMouseClicked
+        // TODO add your handling code here:        
+        if((evt.getClickCount() == 2) && (!(lstUsers.getSelectedValue().equals(""))) && (!(lstUsers.getSelectedValue().equals(userName)))){
+            createPrivateWindow();
+        }
+    }//GEN-LAST:event_lstUsersMouseClicked
+
+    private void itemDisconnectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_itemDisconnectActionPerformed
+        // TODO add your handling code here:
+        
+        disconnectChat();
+    }//GEN-LAST:event_itemDisconnectActionPerformed
+
+    private void txtEmotMouseMoved(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_txtEmotMouseMoved
+        // TODO add your handling code here:
+//        int currentY = evt.getY(); 
+//        System.out.println("current Y : " + currentY);
+        iconImpl.isMouseMove(evt.getX(), evt.getY());
+    }//GEN-LAST:event_txtEmotMouseMoved
 
     /**
      * @param args the command line arguments
@@ -413,12 +478,12 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnChangeRoom;
-    protected javax.swing.JButton btnIgnore;
+    public javax.swing.JButton btnIgnore;
     private javax.swing.JButton btnSend;
+    private javax.swing.JButton btnSendDirect;
     private javax.swing.JMenuItem itemDisconnect;
     private javax.swing.JMenuItem itemLogin;
     private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton4;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel6;
@@ -439,7 +504,6 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JScrollPane jScrollPane4;
     private javax.swing.JPopupMenu.Separator jSeparator1;
-    private javax.swing.JTextPane jTextPane2;
     private javax.swing.JLabel lblAmount;
     private javax.swing.JLabel lblInformation;
     private javax.swing.JLabel lblName;
@@ -447,23 +511,46 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
     private javax.swing.JList lstRooms;
     private javax.swing.JList lstUsers;
     private javax.swing.JTabbedPane tabPanel;
-    private javax.swing.JTextPane txtCanvas;
+    public javax.swing.JTextPane txtCanvas;
+    public javax.swing.JTextPane txtEmot;
     private javax.swing.JTextField txtMessage;
-    private javax.swing.JTextField txtUserCount;
+    public javax.swing.JTextField txtUserCount;
     // End of variables declaration//GEN-END:variables
 
     private void initData(){
         userName = "";
         userRoom = "";
         roomList = "";
-        iconCount = 21;
+        iconCount = 18;
+        privateWindowCount = 0;
         bannerName = "alamat";
         chatLogo = "logo chat";
         isProxy = false;
         userCollection = "";
+        txtMessage.setText("");
         messageImpl = new MessageImpl(this);
         tapPanel = new TabPanelImpl(this);
+        iconImpl = new IconImpl(this, messageImpl);
+        privateWindow = new PrivateChat[MAX_PRIVATE_WINDOW];
+        toolkit = Toolkit.getDefaultToolkit();
         
+        tracker = new MediaTracker(this);
+//        int imageCount = 0;
+        
+        /*iconArray = new Image[iconCount];
+        for(int i=1; i<=iconCount; i++){
+            iconArray[i] = toolkit.getImage("Icons/Emoji" + i + "-100.png");
+            tracker.addImage(iconArray[i], imageCount);
+            imageCount++;
+        }
+               
+        try {
+            setAppletStatus("Loading Icons...");
+            tracker.waitForAll();
+        } catch (InterruptedException ex) {}*/
+        
+        iconImpl.addIconsToMessageObject();
+//        setAppletStatus("");
         updateInformationLabel();
         disableAll();
         loginToChat();
@@ -577,10 +664,9 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                         sendMessageToServer("KICK "+userName+"~"+userRoom);
                 socket.close();	
                 socket = null;
-                String[] a = new String[1];
-                a[0] = "";    a[1] = "";
-                lstUsers.setListData(a);
-                lstRooms.setListData(a);
+                setEmptyList(USER_CANVAS);
+                setEmptyList(ROOM_CANVAS);
+                tapPanel.clearAll();                
             }catch(IOException _IoExc) { }			
         }
         if(thread != null)
@@ -606,6 +692,7 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         userName = "";
 	userRoom = "";
 	totalUserCount = 0;
+        userCollection = "";
     }
 
     /**
@@ -618,13 +705,23 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
             messageImpl.addMessageToMessageObject(message,MESSAGE_TYPE_ADMIN, txtCanvas);
     }
 
-
-//    private void changeRoom() {
-//        if(lstRooms.equals("")){
-//            messageCanvas.addMessageToMessageObject("Invalid room", MESSAGE_TYPE_ADMIN);
-//            return;
-//        }
-//    }
+    /**
+     * Send server information about room changing.
+     */
+    public void changeRoom() {
+        System.out.println("Selected room : " + lstRooms.getSelectedValue());
+        if(lstRooms.isSelectionEmpty()){
+            messageImpl.addMessageToMessageObject("Please select the room first!", MESSAGE_TYPE_ADMIN, txtCanvas);
+            return;
+        }
+        
+        if(lstRooms.getSelectedValue().equals(userRoom)){
+            messageImpl.addMessageToMessageObject("You are in this room right now!", MESSAGE_TYPE_ADMIN, txtCanvas);
+            return;
+        }
+        
+        sendMessageToServer("CHRO " + userName + "~" + lstRooms.getSelectedValue());
+    }
 
     @Override
     public void run() {
@@ -663,13 +760,13 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                     totalUserCount++;
                     updateInformationLabel();
                     
-                    splitString = serverData.substring(5);
-                    enablePrivateWindow(splitString);
+                    splitString = serverData.substring(5);                    
                                        
                     messageImpl.addMessageToMessageObject(splitString + " joins chat.", MESSAGE_TYPE_JOIN, txtCanvas);
-                    
+                    tapPanel.clearAll();
                     setUserCollection(splitString);                    
-                    setUserList(userCollection);         
+                    setUserList(userCollection);                      
+                    enablePrivateWindow(splitString);
                 }
                 
                 if(serverData.startsWith("LIST")){
@@ -696,12 +793,89 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
                     splitString = serverData.substring(5, serverData.indexOf("~"));
                     txtUserCount.setText("Total users in " + splitString + " : " + serverData.substring(serverData.indexOf("~") + 1));
                 }
+                
+                if(serverData.startsWith("PRIV")){
+                    splitString = serverData.substring(5, serverData.indexOf(":"));
+                    System.out.println("Split String Private : " + splitString);
+                    
+                    if(!(tapPanel.isIgnoreUser(splitString))){
+                        boolean privateFlag = false;
+                        
+                        for(int i=0; i<privateWindowCount;i++){
+                            if(privateWindow[i].userName.equals(splitString)){
+                                privateWindow[i].addMessageToMessageCanvas(serverData.substring(5));
+                                privateWindow[i].setVisible(true);
+                                privateWindow[i].requestFocus();
+                                privateFlag = true;
+                                break;
+                            }
+                        }
+                        System.out.println("Private flag : " + !(privateFlag));
+                        if(!(privateFlag)){
+                            if(privateWindowCount >= MAX_PRIVATE_WINDOW){
+                                messageImpl.addMessageToMessageObject("You are exceeding private window limit! So you may lose some old messages", MESSAGE_TYPE_ADMIN, txtCanvas);
+                            } else{                                
+                                privateWindow[privateWindowCount++] = new PrivateChat(this, splitString);
+                                privateWindow[privateWindowCount-1].addMessageToMessageCanvas(serverData.substring(5));
+                                privateWindow[privateWindowCount-1].setVisible(true);
+                                privateWindow[privateWindowCount-1].requestFocus();
+                                System.out.println("Pricate window count : " + privateWindowCount);
+                            }
+                        }
+                    }
+                }
+                
+                if(serverData.startsWith("INKI")){
+                    splitString = serverData.substring(5);
+                    tapPanel.removeListItem(splitString, lstUsers);
+                    removeUserFromPrivateChat(splitString);
+                    messageImpl.addMessageToMessageObject(splitString + " has been kicked out from chat by the Administrator", MESSAGE_TYPE_ADMIN, txtCanvas);
+                    
+                    totalUserCount--;
+                    removeSelectedUser(splitString);
+                    updateInformationLabel();
+                }
+                
+                if(serverData.startsWith("REMO")){
+                    splitString = serverData.substring(5);
+                    
+                    tapPanel.removeListItem(splitString, lstUsers);
+                    removeUserFromPrivateChat(splitString);
+                    messageImpl.addMessageToMessageObject(splitString + " has been logged out from chat!", MESSAGE_TYPE_LEAVE, txtCanvas);
+                    
+                    totalUserCount--;       
+                    removeSelectedUser(splitString);                    
+                    updateInformationLabel();
+                }
+                
+                if(serverData.startsWith("CHRO")){
+                    userRoom = serverData.substring(5);
+                    userCollection = "";
+                }
+                
+                if(serverData.startsWith("JORO")){
+                    splitString = serverData.substring(5);
+                    setEmptyList(USER_CANVAS);
+                    
+                    tapPanel.addListItemToMessageObject(splitString, lstUsers, USER_CANVAS);
+                    
+                    totalUserCount++;
+                    updateInformationLabel();
+                    messageImpl.addMessageToMessageObject(splitString + " joins chat...", MESSAGE_TYPE_ADMIN, txtCanvas);                    
+                }
+                
+                if(serverData.startsWith("LERO")){
+                    splitString = serverData.substring(5, serverData.indexOf("~"));
+                    tapPanel.removeListItem(splitString, lstUsers);
+                    messageImpl.addMessageToMessageObject(splitString + " has leave " + userRoom + "!", MESSAGE_TYPE_ADMIN, txtCanvas);
+                    
+                    totalUserCount--;
+                    updateInformationLabel();
+                }
             } catch (IOException ex) {
                 messageImpl.addMessageToMessageObject(ex.getMessage(),MESSAGE_TYPE_ADMIN, txtCanvas);
                 quitConnection(QUIT_TYPE_DEFAULT);
             }
-            
-            
         }
     }
 
@@ -714,8 +888,14 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
         lblAmount.setText("" +totalUserCount);
     }
 
-    private void enablePrivateWindow(String splitString) {
-        //throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private void enablePrivateWindow(String splitString) {        
+        for(int i=0; i<privateWindowCount; i++){            
+            if(privateWindow[i].userName.equals(splitString)){            
+                privateWindow[i].messageImpl.addMessageToMessageObject(splitString + " is currently online!", MESSAGE_TYPE_ADMIN, privateWindow[i].txtChatList);
+                privateWindow[i].enableAll();
+                return;
+            }
+        }
     }
     
     /**
@@ -750,14 +930,15 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
      * @param pattern Herd of user, separate by ";".
      */
     private void setUserList(String pattern){        
-        StringTokenizer tokenizer = new StringTokenizer(pattern, ";");
-        
-        int counter = tokenizer.countTokens();        
-        userArray = new String[counter];                
+        StringTokenizer tokenizer = new StringTokenizer(pattern, ";");        
+        int counter = tokenizer.countTokens(); 
         int i=0;
+        userArray = new String[counter];         
         
         while(tokenizer.hasMoreTokens()){
             userArray[i] = tokenizer.nextToken();
+            System.out.println("UserArray [" + i+ "] : " + userArray[i]);
+            
             tapPanel.addListItemToMessageObject(userArray[i], lstUsers, USER_CANVAS);
             i++;
         }             
@@ -776,5 +957,99 @@ public class ChatClient extends javax.swing.JFrame implements com.eyesore.client
             userCollection +=  ";" + user;
         }
         
+    }
+    
+    protected void sendPrivateMessageToServer(String message, String toUserName){
+        sendMessageToServer("PRIV " + toUserName + "~" + userName + ": " + message);
+    }
+    
+    protected void removePrivateWindow(String toUserName){
+        int userIndex =0;
+        
+        for(int i=0; i<privateWindowCount;i++){
+            userIndex++;
+            if(privateWindow[i].userName.equals(toUserName)) break;
+        }
+        
+        for(int i= userIndex; i<privateWindowCount; i++){
+            privateWindow[i] = privateWindow[i+1];
+        }
+        
+        privateWindowCount--;
+    }
+    
+    public void createPrivateWindow(){
+        String selectedUser = (String) lstUsers.getSelectedValue();
+        if(!(tapPanel.isIgnoreUser(selectedUser))){
+            boolean privateFlag = false;
+            
+            for(int i=0; i<privateWindowCount; i++){
+                if(privateWindow[i].userName.equals(selectedUser)){
+                    privateWindow[i].show();
+                    privateWindow[i].requestFocus();
+                    privateFlag = true;
+                    break;
+                }                
+            }
+            
+            if(!(privateFlag)){
+                if(privateWindowCount >= MAX_PRIVATE_WINDOW){
+                    messageImpl.addMessageToMessageObject("You are exceeding private window limit! So you may lose some old messages", MESSAGE_TYPE_ADMIN, txtCanvas);
+                } else{
+                    privateWindow[privateWindowCount++] = new PrivateChat(this, selectedUser);
+                    privateWindow[privateWindowCount-1].show();
+                    privateWindow[privateWindowCount-1].requestFocus();
+                }
+            }
+        }
+    }
+
+    private void removeUserFromPrivateChat(String toUserName) {
+        for(int i=0; i<privateWindowCount;i++){
+            if(privateWindow[i].userName.equals(toUserName)){
+                privateWindow[i].messageImpl.addMessageToMessageObject(toUserName + " is currently offline!", MESSAGE_TYPE_ADMIN, privateWindow[i].txtChatList);
+                privateWindow[i].disableAll();
+                return;
+            }
+        }
+    }
+
+    /**
+     * Give "quit" message to user
+     * and close the connection.
+     */
+    private void disconnectChat() {
+        if(socket != null){
+            messageImpl.addMessageToMessageObject("CONNECTION TO THE SERVER CLOSED", MESSAGE_TYPE_ADMIN, txtCanvas);
+            quitConnection(QUIT_TYPE_DEFAULT);                    
+        }
+    }
+    
+    /**
+     * Remove selected user.
+     * for INKI and REMO function.
+     * @param user 
+     */
+    private void removeSelectedUser(String user){
+        if(userCollection.startsWith(user)){
+            userCollection = userCollection.replace(user, "");
+        } else{
+            userCollection = userCollection.replace(";" + user, "");
+        }        
+    }
+    
+    /**
+     * Make List (user or room) empty.
+     * @param canvas user or room 
+     */
+    private void setEmptyList(int canvas){
+        String[] a = new String[1];
+        a[0] = "";
+        
+        if(canvas == ROOM_CANVAS){
+            lstRooms.setListData(a);
+        } else if(canvas == USER_CANVAS){
+            lstUsers.setListData(a);
+        }       
     }
 }

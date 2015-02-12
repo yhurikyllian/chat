@@ -14,12 +14,16 @@ public class MessageObject {
     boolean isImage;
     boolean selected;
     boolean isIgnored;
-    int messageType;
+    int messageType, startX, startY, height, width;
     
     public MessageObject(){
         message = null;
         isImage = false;
         isIgnored = false;
         selected = false;
+        startX = 0;
+        startY = 0;
+        height = 0;
+        width = 0;
     }
 }

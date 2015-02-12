@@ -6,6 +6,7 @@
 package com.eyesore.client.engine;
 
 import com.eyesore.client.gui.ChatClient;
+import com.eyesore.client.gui.PrivateChat;
 import java.util.ArrayList;
 import javax.swing.JList;
 import javax.swing.ListModel;
@@ -19,10 +20,13 @@ public class TabPanelImpl implements CommonSettings{
     private ArrayList listArray;
     private MessageObject messageObject;
     private int canvasType;
+    public String selectedUser;
+    private String[] displayArray;
     
     public TabPanelImpl(ChatClient chatClient){
         this.chatClient = chatClient;
         listArray = new ArrayList();
+        selectedUser = "";
         //image canvas should be here
            
     }
@@ -45,18 +49,17 @@ public class TabPanelImpl implements CommonSettings{
 
     private void display(JList list, int canvas) {
         int listArraySize = listArray.size();
+        //displayArray = new String[list.getModel().getSize()];
+        displayArray = new String[listArraySize];
         for(int i=0; i<listArraySize; i++){
             messageObject = (MessageObject) listArray.get(i);
-            displayListItem(list, canvas);
+            //System.out.println("message Object : " + messageObject.message);
+            displayListItem(list, canvas, i);
         }
     }
 
-    private void displayListItem(JList list, int canvas) {
+    private void displayListItem(JList list, int canvas, int counter) {
         int imageIndex = ROOM_CANVAS_ICON;
-        String[] array;
-        array = new String[list.getModel().getSize()];
-        
-        
         
         switch(canvas){
             case USER_CANVAS:
@@ -66,18 +69,16 @@ public class TabPanelImpl implements CommonSettings{
                     imageIndex = USER_CANVAS_NORMAL_ICON;
                 }
                 
-                array = chatClient.userArray;                
+                //array = chatClient.userArray;                
+                displayArray[counter] = messageObject.message;
             break;
-            case ROOM_CANVAS:
-                for(int i=chatClient.roomArray.length -1; i>-1; i--){
-                    array[i] = chatClient.roomArray[i];
-                    System.out.println("room = " + i + " " + array[i]);
-                }
+            case ROOM_CANVAS:                
+                displayArray = chatClient.roomArray;
              break;
         }
         
         
-        list.setListData(array);
+        list.setListData(displayArray);
         
     }
     
@@ -110,4 +111,122 @@ public class TabPanelImpl implements CommonSettings{
         }
         return -1;
     }
+    
+    public void ignoreUser(boolean isIgnore, String ignoreUserName){
+        int listIndex = getIndexOf(ignoreUserName);
+        if(listIndex >= 0){
+            messageObject = (MessageObject) listArray.get(listIndex);
+            messageObject.isIgnored = isIgnore;
+            listArray.set(listIndex, messageObject);
+            
+            if(isIgnore){
+                chatClient.btnIgnore.setText("Allow User");
+                chatClient.messageImpl.addMessageToMessageObject(ignoreUserName + " has been ignored!", MESSAGE_TYPE_LEAVE, chatClient.txtCanvas);
+            } else{
+                chatClient.btnIgnore.setText("Ignore User");
+                chatClient.messageImpl.addMessageToMessageObject(ignoreUserName + " has been removed from ignored list!", MESSAGE_TYPE_JOIN, chatClient.txtCanvas);
+            }
+        }
+    }
+    
+    public void ignoreUser(boolean isIgnore){
+        if(selectedUser.equals("")){            
+            chatClient.messageImpl.addMessageToMessageObject("Invalid user selection!", MESSAGE_TYPE_ADMIN, chatClient.txtCanvas);
+            return;
+        }
+        
+        if(selectedUser.equals(chatClient.userName)){            
+            chatClient.messageImpl.addMessageToMessageObject("You can't ignored yourself!", MESSAGE_TYPE_ADMIN, chatClient.txtCanvas);
+            return;
+        }
+        
+        ignoreUser(isIgnore, selectedUser);
+    }
+    
+    public void fillSelectedUser(JList list){
+        int listArraySize = listArray.size();
+        boolean selectedFlag = false;
+        chatClient.btnIgnore.setText("Ignore User");
+        chatClient.txtUserCount.setText("");
+        
+        for(int i=0; i<listArraySize; i++){
+            messageObject = (MessageObject) listArray.get(i);
+            
+            if(!(list.getSelectedValue().equals(messageObject.message))){
+                messageObject.selected = false;
+            } else {
+                messageObject.selected = true;
+                selectedUser = messageObject.message;
+                selectedFlag = true;
+
+                if(canvasType == USER_CANVAS){
+                    if(isIgnoreUser(selectedUser)){
+                        chatClient.btnIgnore.setText("Allow User");                    
+                    } else{
+                        chatClient.btnIgnore.setText("Ignore User");
+                    }
+                }
+            }            
+        }
+        display(list, USER_CANVAS);
+        if(!(selectedFlag)){
+            selectedUser = "";
+        }
+    }
+    
+    public void sendDirectMessage(){
+        if(selectedUser.equals("")){
+            chatClient.messageImpl.addMessageToMessageObject("Invalid user selection!", MESSAGE_TYPE_ADMIN, chatClient.txtCanvas);
+            return;
+        }
+        
+        if(selectedUser.equals(chatClient.userName)){
+            chatClient.messageImpl.addMessageToMessageObject("You can't chat with yourself!", MESSAGE_TYPE_ADMIN, chatClient.txtCanvas);
+            return;
+        }
+        
+        chatClient.createPrivateWindow();
+    }
+    
+    public void removeListItem(String listItem, JList list){
+        int listIndex = getIndexOf(listItem);
+        System.out.println("list index : " + listIndex);
+        if(listIndex>=0){
+            messageObject = (MessageObject) listArray.get(listIndex);
+            //System.out.println("MessageObject : " + messageObject.message);
+            listArray.remove(listIndex);
+            int listSize = listArray.size();
+            System.out.println("List size : " + listSize);
+            for(int i= listIndex; i<listSize; i++){
+                messageObject = (MessageObject) listArray.get(i);
+                //displayListItem(list, USER_CANVAS, i);
+            }
+        }
+        display(list, USER_CANVAS);
+    }
+
+    /*private void createPrivateWindow() {
+        if(!(isIgnoreUser(selectedUser))){
+            boolean privateFlag = false;
+            
+            for(int i=0; i<chatClient.privateWindowCount; i++){
+                if(chatClient.privateWindow[i].userName.equals(selectedUser)){
+                    chatClient.privateWindow[i].setVisible(true);
+                    chatClient.privateWindow[i].requestFocus();
+                    privateFlag = true;
+                    break;
+                }
+            }
+            
+            if(!(privateFlag)){
+                if(chatClient.privateWindowCount >= MAX_PRIVATE_WINDOW){
+                    chatClient.messageImpl.addMessageToMessageObject("You are exceeding private window limit! So you may lose some old messages", MESSAGE_TYPE_ADMIN, chatClient.txtCanvas);
+                } else{
+                    chatClient.privateWindow[chatClient.privateWindowCount++] = new PrivateChat(chatClient, selectedUser);
+                    chatClient.privateWindow[chatClient.privateWindowCount-1].setVisible(true);
+                    chatClient.privateWindow[chatClient.privateWindowCount-1].requestFocus();
+                }
+            }
+        }
+    }*/
 }

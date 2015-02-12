@@ -43,6 +43,7 @@ public class ChatCommunication implements Runnable, CommonSettings {
                 /*******RFC Checking**************/
                 if(RFC.startsWith("HELO")) {					
                         parent.addUser(socket,RFC.substring(5));														
+                        //System.out.println("Hit Helo");
                 }
 
                 if(RFC.startsWith("QUIT")) {                

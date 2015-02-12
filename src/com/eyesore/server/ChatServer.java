@@ -212,7 +212,8 @@ public class ChatServer extends javax.swing.JFrame implements Runnable, CommonSe
         
         for(g_ILoop = 0; g_ILoop < m_userListSize; g_ILoop++) {
             clientObject = (ClientObject) userArrayList.get(g_ILoop);
-            /***Check the Room Name*****/
+            
+            
             if(clientObject.getRoomName().equals(ROOM_NAME)) {
                 sendMessageToClient(clientObject.getSocket(),m_addRFC);
                 stringBuffer.append(clientObject.getUserName());													
@@ -220,14 +221,17 @@ public class ChatServer extends javax.swing.JFrame implements Runnable, CommonSe
             }
         }
 
-        /*****Add a user in to array list***/
+        
         clientObject = new ClientObject(clientSocket,userName,ROOM_NAME);
         userArrayList.add(clientObject);
 
-        /********Sending the Complte User List to the New User***********/
+        //sending complete information about all user to current user.                       
         stringBuffer.append(userName);
         stringBuffer.append(";");
-        sendMessageToClient(clientSocket,stringBuffer.toString());
+        sendMessageToClient(clientSocket,stringBuffer.toString());        
+        System.out.println("String buffer : " + stringBuffer.toString());
+        
+        //clientObject = (ClientObject) userArrayList.get(g_ILoop);
     }
 
     void removeUser(String userName, String roomName, int removeType) {
@@ -312,8 +316,10 @@ public class ChatServer extends javax.swing.JFrame implements Runnable, CommonSe
         /********Sending a General Message to All the Users*******/
         int m_userListSize = userArrayList.size();
         String m_messageRFC = "MESS "+userName+":"+message;
+        
         for(g_ILoop = 0; g_ILoop < m_userListSize; g_ILoop++) {
             clientObject = (ClientObject) userArrayList.get(g_ILoop);
+            System.out.println("room = " + clientObject.getRoomName()+":"+roomName+"    user = " + clientObject.getUserName()+":"+userName);
             if((clientObject.getRoomName().equals(roomName)) && (!(clientObject.getUserName().equals(userName)))) {				
                 sendMessageToClient(clientObject.getSocket(),m_messageRFC);	
             }	
@@ -334,8 +340,18 @@ public class ChatServer extends javax.swing.JFrame implements Runnable, CommonSe
         }
     }
 
-    void getUserCount(Socket socket, String substring) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    void getUserCount(Socket clientSocket, String roomName) {
+        int m_userListSize = userArrayList.size();
+		int m_userCount = 0;
+		for(g_ILoop = 0; g_ILoop < m_userListSize; g_ILoop++)
+		{
+			clientObject = (ClientObject) userArrayList.get(g_ILoop);
+			if(clientObject.getRoomName().equals(roomName))
+				m_userCount++;	
+		}
+		
+		sendMessageToClient(clientSocket,"ROCO "+roomName+"~"+m_userCount);
+	
     }
 
     void requestForVoiceChat(Socket socket, String substring, String substring0) {
@@ -423,7 +439,7 @@ public class ChatServer extends javax.swing.JFrame implements Runnable, CommonSe
 
     @Override
     public void run() {
-        /*********Accepting all the client connections and create a seperate thread******/
+        /*********Accepting all the client connections and create a separate thread******/
         while(thread != null) {
             try {
                 /********Accepting the Server Connections***********/
